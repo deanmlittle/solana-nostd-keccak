@@ -1,0 +1,19 @@
+[package]
+name = "solana-nostd-keccak"
+authors = ["Dean Little <@deanmlittle>"]
+description = "A more efficient implementation of Keccak256 for SVM"
+version = "0.1.1"
+edition = "2021"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+sha3 = { version = "0.10.8", optional = true }
+
+[dev-dependencies]
+hex = "0.4.3"
+
+[target.'cfg(not(target_os = "solana"))'.dependencies]
+sha3 = { version = "0.10.8" }
