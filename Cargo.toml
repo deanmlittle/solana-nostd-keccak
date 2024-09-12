@@ -2,7 +2,7 @@
 name = "solana-nostd-keccak"
 authors = ["Dean Little <@deanmlittle>"]
 description = "A more efficient implementation of Keccak256 for SVM"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 
