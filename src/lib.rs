@@ -1,4 +1,4 @@
-use std::mem::MaybeUninit;
+use core::mem::MaybeUninit;
 
 #[cfg(not(target_os = "solana"))]
 use sha3::{Digest, Keccak256};
@@ -10,24 +10,36 @@ extern "C" {
     fn sol_keccak256(vals: *const u8, val_len: u64, hash_result: *mut u8) -> u64;
 }
 
+#[cfg_attr(target_os = "solana", inline(always))]
 pub fn hash(data: &[u8]) -> [u8;HASH_LENGTH] {
     hashv(&[data])
 }
 
+#[inline(always)]
 pub fn hash_ref<T: AsRef<[u8]>>(data: T) -> [u8;HASH_LENGTH] {
     hashv(&[data.as_ref()])
 }
 
+#[cfg(not(target_os = "solana"))]
 pub fn hashv(data: &[&[u8]]) -> [u8; HASH_LENGTH] {
     let mut out = MaybeUninit::<[u8; HASH_LENGTH]>::uninit();
     unsafe {
-        hash_into(data, &mut out.assume_init_mut());
+        hash_into(data, out.assume_init_mut());
+        out.assume_init()
+    }
+}
+
+#[cfg(target_os = "solana")]
+#[inline(always)]
+pub fn hashv(data: &[&[u8]]) -> [u8; HASH_LENGTH] {
+    let mut out = MaybeUninit::<[u8; HASH_LENGTH]>::uninit();
+    unsafe {
+        hash_into(data, out.as_mut_ptr());
         out.assume_init()
     }
 }
 
 #[cfg(not(target_os = "solana"))]
-#[inline(always)]
 pub fn hash_into(data: &[&[u8]], out: &mut [u8; HASH_LENGTH]) {
     let mut hasher = Keccak256::new();
     for item in data {
@@ -38,12 +50,12 @@ pub fn hash_into(data: &[&[u8]], out: &mut [u8; HASH_LENGTH]) {
 
 #[cfg(target_os = "solana")]
 #[inline(always)]
-pub fn hash_into(data: &[&[u8]], out: &mut [u8; HASH_LENGTH]) {
+pub fn hash_into(data: &[&[u8]], out: *mut [u8; 32]) {
     unsafe {
         sol_keccak256(
             data as *const _ as *const u8,
             data.len() as u64,
-            out.as_mut_ptr() as *mut u8,
+            out as *mut u8,
         );
     }
 }
