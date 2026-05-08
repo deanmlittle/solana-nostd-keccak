@@ -31,6 +31,17 @@ The library is `#![no_std]`-clean for SBPF; no allocator setup required.
 - Uses `MaybeUninit` to skip zero-initializing the output buffer
 - `hash_into` lets you hash directly into a pre-allocated buffer
 
+## Static syscalls
+
+If your target supports the Upstream BPF / sBPFv3 static-syscall ABI, enable the `static-syscalls` feature:
+
+```toml
+[dependencies]
+solana-nostd-keccak = { version = "0.2.0", features = ["static-syscalls"] }
+```
+
+The syscall name is murmur3-hashed at compile time and transmuted to a fn pointer, so the SBPF program calls the syscall directly instead of going through an `extern "C"` PLT relocation. No measurable CU difference in our benchmarks — the win is a smaller `.so` and one less relocation for the loader to resolve.
+
 ## Benchmarks
 
 On-chain compute unit cost per operation:
