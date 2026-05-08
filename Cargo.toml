@@ -1,19 +1,29 @@
 [package]
 name = "solana-nostd-keccak"
 authors = ["Dean Little <@deanmlittle>"]
-description = "A more efficient implementation of Keccak256 for SVM"
-version = "0.1.3"
-edition = "2021"
+description = "A more efficient, no_std implementation of Keccak-256 for the Solana SVM"
 license = "MIT"
+version = "0.2.0"
+edition = "2024"
+repository = "https://github.com/blueshift-gg/solana-nostd-keccak"
+readme = "Readme.md"
+keywords = ["solana", "sbpf", "keccak", "no-std", "crypto"]
+categories = ["cryptography", "no-std"]
+exclude = [".github/", ".gitignore"]
 
 [lib]
-crate-type = ["cdylib", "lib"]
 
-[dependencies]
-sha3 = { version = "0.10.8", optional = true }
+[features]
+# Use the Upstream BPF/sBPFv3 static-syscall ABI (murmur3-hashed name → fn pointer
+# transmute) instead of dynamic `extern "C"` linking. Saves the PLT
+# relocation but requires a toolchain that supports static syscalls.
+static-syscalls = []
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
 
 [dev-dependencies]
-hex = "0.4.3"
+svm-unit-test = "0.1.5"
 
-[target.'cfg(not(target_os = "solana"))'.dependencies]
-sha3 = { version = "0.10.8" }
+[target.'cfg(not(any(target_arch = "bpf", target_os = "solana")))'.dependencies]
+sha3 = { version = "0.10.8", default-features = false }

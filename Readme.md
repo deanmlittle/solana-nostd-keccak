@@ -1,24 +1,62 @@
 # Solana NoStd Keccak256
 
-A more efficient implementation of Keccak256 for SVM.
+[![CI](https://github.com/blueshift-gg/solana-nostd-keccak/actions/workflows/ci.yml/badge.svg)](https://github.com/blueshift-gg/solana-nostd-keccak/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/solana-nostd-keccak.svg)](https://crates.io/crates/solana-nostd-keccak)
+[![docs.rs](https://docs.rs/solana-nostd-keccak/badge.svg)](https://docs.rs/solana-nostd-keccak)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/blueshift-gg/solana-nostd-keccak/blob/master/LICENSE)
 
-# Installation
+A more efficient, `no_std` Keccak-256 for the Solana SVM. Routes through the `sol_keccak256` syscall on-chain (~100 CUs for `hashv(&[b"test"])` vs ~121 CUs for `solana_program::keccak::hashv`) and falls through to the `sha3` crate off-chain so the same APIs work in host code.
 
-```cargo add solana-nostd-keccak```
+## Quick start
 
-# Features
+```toml
+[dependencies]
+solana-nostd-keccak = "0.2.0"
+```
 
-- Adds `hash_ref` which takes in any type that implements `<AsRef<[u8]>>`
-- No `Hash` struct. Returns `[u8;32]` directly.
-- Makes use of MaybeUninit to skip zero allocations
-- Adds `hash_into` to let you hash directly into a mutable buffer.
+```rust
+use solana_nostd_keccak::{hash, hash_ref, hashv};
 
-# Performance
+let a = hash(b"test");
+let b = hashv(&[b"hello", b" ", b"world"]);
+let c = hash_ref("any AsRef<[u8]>");
+```
 
-| library        | function          | CU cost |
-|----------------|-------------------|---------|
-| nostd-keccak   | hashv(&[b"test"]) | 100     |
-| nostd-keccak   | hash(b"test")     | 105     |
-| nostd-keccak   | hash_ref("test")  | 105     |
-| solana-program | hashv(&[b"test"]) | 121     |
-| solana-program | hash(b"test")     | 123     |
+The library is `#![no_std]`-clean for SBPF; no allocator setup required.
+
+## Features
+
+- Adds `hash_ref` which takes any type that implements `AsRef<[u8]>`
+- No `Hash` struct — returns `[u8; 32]` directly
+- Uses `MaybeUninit` to skip zero-initializing the output buffer
+- `hash_into` lets you hash directly into a pre-allocated buffer
+
+## Benchmarks
+
+On-chain compute unit cost per operation:
+
+| function            | CU cost |
+|---------------------|--------:|
+| `hashv(&[b"test"])` |     100 |
+| `hash(b"test")`     |     105 |
+| `hash_ref("test")`  |     105 |
+
+To reproduce, install `cargo build-sbf` (Solana CLI) and run:
+
+```sh
+cargo test --test sbpf --jobs 1
+```
+
+Sample output (includes the SBPF entrypoint wrapper, ~2 CUs above a raw call):
+
+```
+svm_test `bench_hashv`    => 102 CUs
+svm_test `bench_hash`     => 106 CUs
+svm_test `bench_hash_ref` => 108 CUs
+```
+
+The benchmarks compile each function into its own SBPF program and run it through [Mollusk](https://github.com/anza-xyz/mollusk) via [`svm-unit-test`](https://crates.io/crates/svm-unit-test).
+
+## License
+
+Licensed under the [MIT License](https://github.com/blueshift-gg/solana-nostd-keccak/blob/master/LICENSE). The license includes the standard "as-is" warranty disclaimer — use at your own risk.
